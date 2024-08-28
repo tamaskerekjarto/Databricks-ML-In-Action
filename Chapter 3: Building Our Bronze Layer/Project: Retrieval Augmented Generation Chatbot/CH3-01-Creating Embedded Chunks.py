@@ -79,7 +79,7 @@ df = (
         .load('dbfs:'+ documents_folder)
         )
 
-df.write.mode("overwrite").saveAsTable(f"{catalog}.{database_name}.{table_name}")
+df.write.mode("overwrite").saveAsTable(f"`{catalog}`.{database_name}.{table_name}")
 
 # COMMAND ----------
 
