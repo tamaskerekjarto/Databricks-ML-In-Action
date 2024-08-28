@@ -118,6 +118,7 @@ from pyspark.sql.functions import expr
 from functools import reduce
 import pyspark
 import os
+spark_connect_enabled = os.environ.get('SPARK_CONNECT_MODE_ENABLED')
 
 # Generate a record
 def generateRecord(Product,Label):
@@ -130,7 +131,15 @@ def generateRecordSet(Products):
   for Prod in Products:
     for Lab in Labels:
       recordSet.append(generateRecord(Prod, Lab))
-  return reduce(pyspark.sql.dataframe.DataFrame.unionByName, recordSet)
+      
+    if spark_connect_enabled == '1':
+    # use the alternative union approach if Spark Connect is set 
+     result = recordSet[0]
+     for df in recordSet[1:]:
+         result = result.unionByName(df)
+     return result
+    else:
+      return reduce(pyspark.sql.dataframe.DataFrame.unionByName, recordSet)
 
 
 # Generate a set of data, convert it to a Dataframe, write it out as one json file to the temp path. Then move that file to the destination_path
