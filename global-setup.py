@@ -37,7 +37,14 @@ assert float(current_version) >= float(min_required_version), f'The Databricks v
 # DBTITLE 1,Setting a default catalog and project specific database
 # DATABASE SETUP -----------------------------------
 # Define a current user
-current_user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+from databricks.sdk import WorkspaceClient
+ 
+w = WorkspaceClient(
+    host="HOST",
+    token="TOKEN"
+ )
+current_user = w.current_user.me().user_name
+#current_user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 if current_user.rfind('@') > 0:
   current_user_no_at = current_user[:current_user.rfind('@')]
 else:
@@ -47,7 +54,9 @@ current_user_no_at = re.sub(r'\W+', '_', current_user_no_at)
 # Set the UC catalog based on the isolation environment
 env = dbutils.widgets.get("env")
 if env=="dev":
-  catalog = "ml_in_action"
+  #catalog = "ml_in_action"
+  # changing the catalog to the existing assigned one due to not having permission to create new one
+  catalog = spark.sql(f"""SHOW CATALOGS LIKE 'ida*'""").first().catalog
 elif env=="prod":
   catalog = "ml_in_prod"  
 
@@ -59,7 +68,7 @@ else:
   database_name = db
 
 def use_and_create_db(catalog, database_name):
-  spark.sql(f"""CREATE CATALOG if not exists `{catalog}` """)
+  #spark.sql(f"""CREATE CATALOG if not exists `{catalog}` """)
   spark.sql(f"USE CATALOG `{catalog}`")
   spark.sql(f"""CREATE DATABASE if not exists `{database_name}` """)
 
@@ -81,16 +90,16 @@ for i in range(10):
 
 # DBTITLE 1,Granting permissions
 # Granting UC permissions to account users - change if you want your data private    
-spark.sql(f"GRANT CREATE, SELECT, USAGE on SCHEMA {catalog}.{database_name} TO `account users`")
+#spark.sql(f"GRANT CREATE, SELECT, USAGE on SCHEMA {catalog}.{database_name} TO `account users`")
 
 # COMMAND ----------
 
 # DBTITLE 1,Setting up volumes
-sql(f"""CREATE VOLUME IF NOT EXISTS {catalog}.{database_name}.files""")
+sql(f"""CREATE VOLUME IF NOT EXISTS `{catalog}`.{database_name}.files""")
 volume_file_path = f"/Volumes/{catalog}/{database_name}/files/"
 print(f"use volume_file_path {volume_file_path}")
 
-sql(f"""CREATE VOLUME IF NOT EXISTS {catalog}.{database_name}.models""")
+sql(f"""CREATE VOLUME IF NOT EXISTS `{catalog}`.{database_name}.models""")
 volume_model_path = f"/Volumes/{catalog}/{database_name}/models/"
 print(f"use volume_model_path {volume_model_path}")
 
